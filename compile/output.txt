@@ -1,0 +1,26 @@
+c[?7l[2J[0mSeaBIOS (version 1.11.0-2.el7)
+
+
+iPXE (http://ipxe.org) 00:03.0 C980 PCI2.10 PnP PMM+07F94620+07ED4620 C980
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from ROM..pcibios_init : PCI BIOS revision 2.10 entry at 0xfd225
+pci_init: PCI BIOS initialization succeeded
+
+
+Xinu Version (CSC501 1-2017 base) #1 (kmarrip@vclvm177-193.vcl) Wed Feb 12 10:47:36 EST 2025
+
+16777216 bytes real mem
+91087 bytes Xinu code
+clock enabled
+Please Input:
+5
+Get 5
+prempt value is 8
+MCCCCCCCCCBBBBBBMMACCCCCCCCCCBBBBBMMCCCCCCCCCBBBBBMMACCCCCCCCCBBBBBMMACCCCCCCCCBBBBBMMCCCCBBBBBMMABBBBBMMMBBBBBMMABBBBBMMBBBBMMAMMMMAMMMMAMMMAMMMMMAMMMMAMMMMMMAMM
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+All user processes have completed.
+
+

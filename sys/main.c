@@ -5,7 +5,7 @@
 #include <q.h>
 #include <stdio.h>
 #include <lab1.h>
-
+#include <proc.h>
 
 #define LOOP 50
 
@@ -56,6 +56,7 @@ int main()
 	else
 	{
 		setschedclass(LINUXSCHED);
+		kprintf("prempt value is %d\n",preempt);
 		resume(prA = create(proc, 2000, 5, "proc A", 1, 'A'));
 		resume(prB = create(proc, 2000, 50, "proc B", 1, 'B'));
 		resume(prC = create(proc, 2000, 90, "proc C", 1, 'C'));

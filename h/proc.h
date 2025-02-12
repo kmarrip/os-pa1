@@ -60,6 +60,11 @@ struct	pentry	{
 	int	fildes[_NFILE];		/* file - device translation	*/
 	int	ppagedev;		/* pageing dgram device		*/
 	int	pwaitret;
+
+	int quantum;			/*This is value when the process is inserted into the epoch, in the begining quantum is same as priority*/
+	int counter;			/*counter explains how many ticks are still left for this process*/
+	int goodness;			/*if quantum is 0 then goodness is 0, else for other runnable processes goodness = counter + priority */
+
 };
 
 

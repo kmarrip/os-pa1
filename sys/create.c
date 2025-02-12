@@ -67,6 +67,14 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	pptr->pnxtkin = BADPID;
 	pptr->pdevs[0] = pptr->pdevs[1] = pptr->ppagedev = BADDEV;
 
+
+	// if a process is created, its values wont be updated until the next epoch
+	
+	pptr->goodness = 0;
+	pptr->quantum = 0;
+	pptr->counter = 0;
+
+
 		/* Bottom of stack */
 	*saddr = MAGIC;
 	savsp = (unsigned long)saddr;

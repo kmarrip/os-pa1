@@ -1,0 +1,36 @@
+1. What are the advantages and disadvantages of each of the two scheduling policies? Also, give the advantages and disadvantages of the round robin scheduling policy originally implemented in Xinu.
+
+Original scheduler:
+The original round robin policy might starve some of the low end processes, this makes some processes not schedule at all.
+But the advantage of this scheduler is that it is simpler to implement, takes little to no effort to come up with this algorithm.
+
+Aging based scheudler:
+The aging based scheduler works really well, starvation probblem is very well solved here, but the extent to which this is solved
+depends on the absolute values of the priorities assigned to the processes.
+Eg. If A,B,C are given 10,11,12 as the priorities   --> In this case the fairness among the processes is well preserved
+But If A,B,C are given 1000, 1,2 as the priorities  --> In this case it would take a lot of time for the low end processes to come up all the way to top
+
+the other advantage worth noting here is, that all the processes in the ready queue which are already sorted remain sorted even after the increment.
+
+Linux schduler: 
+This schduler is the most difficult to implement and requries one to traverse all the ready queue to be able to pick the next one up
+But the main advantage is that starvation is resolved here and this algorithm doesn't suffer with the same problem as the the age based one.
+Here the processes are pickedup in an epoch until all the processes have used up their quantum
+Here all processes get scheduled atleast once in an epoch which isn't true in the above two algorithms
+
+
+2. Describe when each of the schedulers run the NULL process.
+
+Aging based scheduler:
+Here atleast as per my implementation, the null process's priority is never incremented. It tends (should) remain at the bottom of the queue
+it gets picked up only when all the processes are done with their tasks
+
+Linux scheduler:
+Here the null process might get picked up but since prempt would be really small it would get reschuuled real quick.
+This way it would then check if there are any other processes that might get scheudled, if not a new epoch starts
+
+3. Give two suggestions how the above mentioned aging based scheduler could be changed to attain better fairness keeping the fundamental point of incrementing the priority to be the same in your new ideas.
+One idea regarding the aging scheudler is that 
+1. instead of increasing the priorities by 2, exponentially increase them until they reach a limit
+2. The other idea could be to decrease the priority of the process that has just been scheduled, this way both the scheduled process and processes in the ready queue 
+would come to a common point

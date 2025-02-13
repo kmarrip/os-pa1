@@ -31,7 +31,6 @@ int main()
 		;
 	buf[i] = 0;
 	s = atoi(buf);
-	kprintf("Get %d\n", s);
 	
 
 	// RANDOMSCHED
@@ -56,7 +55,6 @@ int main()
 	else
 	{
 		setschedclass(LINUXSCHED);
-		kprintf("prempt value is %d\n",preempt);
 		resume(prA = create(proc, 2000, 5, "proc A", 1, 'A'));
 		resume(prB = create(proc, 2000, 50, "proc B", 1, 'B'));
 		resume(prC = create(proc, 2000, 90, "proc C", 1, 'C'));

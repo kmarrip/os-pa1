@@ -9,6 +9,8 @@
 #define AGESCHED 1 
 #define LINUXSCHED 2
 
+void calculateEpoch();
+void makeReady(struct pentry *p, int currpid);
 unsigned long currSP; /* REAL sp of current process */
 extern int ctxsw(int, int, int, int);
 /*-----------------------------------------------------------------------
@@ -46,18 +48,13 @@ int resched() {
 
     /* force context switch */
 
-    if (optr -> pstate == PRCURR) {
-      optr -> pstate = PRREADY;
-      insert(currpid, rdyhead, optr -> pprio);
-    }
+    makeReady(optr,currpid);
 
     /* remove highest priority process at end of ready list */
 
     nptr = & proctab[(currpid = getlast(rdytail))];
     nptr -> pstate = PRCURR; /* mark it currently running	*/
-    #ifdef RTCLOCK
     preempt = QUANTUM; /* reset preemption counter	*/
-    #endif
 
     ctxsw((int) & optr -> pesp, (int) optr -> pirmask, (int) & nptr -> pesp, (int) nptr -> pirmask);
 
@@ -77,7 +74,7 @@ int resched() {
     // goodness is based on counter and priority, but changes made to priority while epoch is in progress is ignored
     // the only chnage that can be made to goodness is via the time slice
     // kprintf("current state %d, process priority %d, currpid %d , current goodness is %d, decrease by %d\n",optr -> pstate, optr -> pprio, currpid,optr->goodness ,preempt - optr-> counter);
-    optr -> goodness+= preempt - optr->counter;
+    optr -> goodness=optr-> goodness +  ( preempt - optr->counter );
     optr -> counter = preempt;
     
     // also as the basecase to makesure the NULLPROC is not taken into consideration
@@ -99,7 +96,7 @@ int resched() {
     int nextProcess = 0;
     int maxGoodness = 0;
     
-    while(head != rdytail && head < NPROC){
+    while(head != rdytail){
       if(proctab[head].goodness > maxGoodness){
         maxGoodness =  proctab[head].goodness;
         nextProcess = head;
@@ -112,18 +109,15 @@ int resched() {
 
     // now based on the iteration we come up with different scenarios
     // 1. if the currpid is better than everything in the ready queue, dont really do anything
-    if(optr-> pstate == PRCURR && optr-> goodness > 0 && optr->goodness > maxGoodness){
+    if(optr->goodness > maxGoodness && optr-> pstate == PRCURR && optr-> goodness > 0 ){
       preempt = optr -> counter; // update the prempt to the counter variable
       return OK;
     }
 
     // 2. if there is a better process in the ready queue which can be scheduled, or if the current process's counter has become zero
     // pick the best process and context switch
-    if(( optr->goodness < maxGoodness || optr -> counter == 0 || optr -> pstate != PRCURR) && maxGoodness > 0){
-      if(optr->pstate == PRCURR){
-          optr -> pstate = PRREADY;
-          insert(currpid, rdyhead, optr -> pprio);
-      }
+    if(maxGoodness > 0 && ( optr->goodness < maxGoodness || optr -> counter == 0 || optr -> pstate != PRCURR) ){
+      makeReady(optr, currpid);
 
 
       // now the make the bette?r process the currpid and make it running
@@ -140,7 +134,7 @@ int resched() {
     // 3. if the currpid is done with its counter and the next process in ready queue is useless,
     // then its time for us to start a new epoch
     if(( optr -> counter == 0 || optr-> pstate != PRCURR ) && maxGoodness == 0){
-      calculateEpoch();
+      restartNewEpoch();
       // now the counter values have changed after restarting the epoch.
       preempt = optr -> counter;
 
@@ -149,19 +143,15 @@ int resched() {
 
 
       // updates current process's state and put it back into the ready queue
-      if(optr -> pstate == PRCURR){
-          optr->pstate = PRREADY;
-			    insert(currpid,rdyhead,optr->pprio);
-      }
+      makeReady(optr, currpid);
+      
       // since the epoch is now starting new, dequeue the null process and restart the game
       // its assumed that the null proc will not be large
       currpid = dequeue(NULLPROC);
       nptr = &proctab[currpid];
       nptr -> pstate = PRCURR;
 
-      #ifdef RTCLOCK
-          preempt = QUANTUM;
-      #endif
+      preempt = QUANTUM;
 
       ctxsw((int) & optr -> pesp, (int) optr -> pirmask, (int) & nptr -> pesp, (int) nptr -> pirmask);
       return OK;
@@ -180,22 +170,61 @@ int resched() {
 
     /* force context switch */
 
-    if (optr -> pstate == PRCURR) {
-      optr -> pstate = PRREADY;
-      insert(currpid, rdyhead, optr -> pprio);
-    }
+    makeReady(optr, currpid);
 
-    /* remove highest priority process at end of ready list */
-
-    nptr = & proctab[(currpid = getlast(rdytail))];
-    nptr -> pstate = PRCURR; /* mark it currently running	*/
-    #ifdef RTCLOCK
-    preempt = QUANTUM; /* reset preemption counter	*/
-    #endif
+    // get the last process and make it current
+    //and restart the preempt
+    currpid = getlast(rdytail);
+    nptr = & proctab[currpid];
+    nptr -> pstate = PRCURR; 
+    preempt = QUANTUM;
 
     ctxsw((int) & optr -> pesp, (int) optr -> pirmask, (int) & nptr -> pesp, (int) nptr -> pirmask);
 
     /* The OLD process returns here when resumed. */
     return OK;
+  }
+}
+
+void makeReady(struct pentry * optr,int currrpid){
+  if(optr -> pstate != PRCURR)return;
+  optr -> pstate = PRREADY;
+  insert(currpid,rdyhead,optr->pprio);
+}
+
+void restartNewEpoch(){
+  struct pentry *p;
+  int i;
+  for(i=0;i<NPROC;i++){
+      p = &proctab[i];
+      // we are resetting the goodness, quantum and counter values
+      
+
+      if(p -> pstate == PRFREE) continue;
+      // 1. For a process that has never executed or has exhausted its time quantum in the previous epoch, 
+      // its new quantum value is set to its process priority (i.e., quantum = priority).
+
+      // if a process has utilized all of its quantum
+      if(p->counter == 0){
+          p -> quantum = p -> pprio;
+      }
+      // if a process has counter equal to quantum
+      else if (p->counter == p->quantum){
+          p -> quantum = p -> pprio;
+      }
+      
+      // 2. or a process that did not get to use up its previously assigned quantum, we allow part of the unused quantum to be carried over to the new epoch. 
+      // Suppose for each process, a variable counter describes how many ticks are left from its quantum, then at the beginning of the next epoch, quantum = floor(counter/2) + priority.
+
+      // the process is either starting from scratch or it has some 
+      else {
+          p -> quantum = p -> pprio + (p->counter)/2;
+      }
+      p -> counter = p -> quantum;
+
+      // if the process has used up its quantum, its goodness is set to 0
+      // but here since we are resetting the values, goodness is equal to priority + counter;
+      // we need to update the values of goodness everytime there is a reschedule.
+      p -> goodness = p -> pprio + p -> counter;
   }
 }
